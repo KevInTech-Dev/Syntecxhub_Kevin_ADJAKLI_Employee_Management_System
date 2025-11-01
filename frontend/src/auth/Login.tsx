@@ -1,26 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginUser } from './authService';
-import axios from 'axios'
-import { useEffect } from 'react';
+import axios from 'axios';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-  useEffect(() => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated');
-  if (isAuthenticated === 'true') {
-    navigate('/home');
-  }
-}, [navigate]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    if (isAuthenticated === 'true') {
+      navigate('/home');
+    }
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
     setIsLoading(true);
-try {
+
+    try {
       const res = await loginUser(email, password);
       const { requiresOtp } = res.data;
 
@@ -29,41 +31,47 @@ try {
         navigate('/verify-otp');
       } else {
         localStorage.setItem('isAuthenticated', 'true');
+window.dispatchEvent(new Event('authChange')); // ← déclenche le re-render
         navigate('/home');
       }
     } catch (err: unknown) {
-  if (axios.isAxiosError(err)) {
-    setError(err.response?.data?.message || 'Server error');
-  } else {
-    setError('Unexpected error');
-  }
-}
-finally {
-  setIsLoading(false);
-}
+      setErrors({
+        general: axios.isAxiosError(err)
+          ? err.response?.data?.message || 'Login failed'
+          : 'Unexpected error',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10">
-      <h2 className="text-2xl font-bold mb-4">Login</h2>
-      {error && <p className="text-red-600">{error}</p>}
+    <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded-md shadow-md">
+      <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
       <form onSubmit={handleLogin} className="grid gap-4">
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="border px-3 py-2 rounded-md"
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="border px-3 py-2 rounded-md"
-        />
-        {isLoading && <p className="text-gray-500 text-sm">Processing...</p>}
-
+        <div>
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border px-3 py-2 rounded-md w-full"
+            required
+          />
+        </div>
+        <div>
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="border px-3 py-2 rounded-md w-full"
+            required
+          />
+        </div>
+        {errors.general && (
+          <p className="text-red-600 text-sm">{errors.general}</p>
+        )}
         <button
           type="submit"
           disabled={isLoading}
@@ -71,13 +79,12 @@ finally {
         >
           {isLoading ? 'Please wait...' : 'Login'}
         </button>
-        <p className="text-sm mt-2">
-  haven't signed up yet ?{' '}
-  <Link to="/register" className="text-blue-600 underline">
-    Sign up for an account
-  </Link>
-</p>
-
+        <p className="text-sm text-center mt-2">
+          Haven't signed up yet?{' '}
+          <Link to="/register" className="text-blue-600 underline">
+            Create an account
+          </Link>
+        </p>
       </form>
     </div>
   );

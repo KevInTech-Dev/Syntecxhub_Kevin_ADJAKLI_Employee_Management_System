@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState, type JSX } from 'react';
-import Navbar from './components/Navbar';
 import EmployeeList from './pages/EmployeeList';
 import AddEmployee from './pages/AddEmployee';
 import EditEmployee from './pages/EditEmployee';
@@ -15,33 +14,45 @@ const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
 };
 
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
+  const checkAuth = () => {
     const auth = localStorage.getItem('isAuthenticated') === 'true';
     setIsAuthenticated(auth);
-  }, []);
+  };
+
+  checkAuth(); // initial check
+
+  window.addEventListener('authChange', checkAuth); // ← écoute un événement personnalisé
+
+  return () => {
+    window.removeEventListener('authChange', checkAuth);
+  };
+}, []);
+
+
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        {isAuthenticated && <Navbar />}
-        <main className="py-6">
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-otp" element={<OtpVerify />} />
+  <div className="min-h-screen bg-gray-50">
+    <main className="py-6">
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<OtpVerify />} />
 
-            {/* Protected routes */}
-            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
-            <Route path="/edit/:id" element={<ProtectedRoute><EditEmployee /></ProtectedRoute>} />
-            <Route path="/employees" element={<ProtectedRoute><EmployeeList /></ProtectedRoute>} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+        {/* Protected routes */}
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/add" element={<ProtectedRoute><AddEmployee /></ProtectedRoute>} />
+        <Route path="/edit/:id" element={<ProtectedRoute><EditEmployee /></ProtectedRoute>} />
+        <Route path="/employees" element={<ProtectedRoute><EmployeeList /></ProtectedRoute>} />
+      </Routes>
+    </main>
+  </div>
+</Router>
+
   );
 };
 
